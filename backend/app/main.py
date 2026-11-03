@@ -11,6 +11,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
+from app.auth.router import router as auth_router
 from app.config import get_settings
 from app.core.errors import register_error_handlers
 from app.db import init_db
@@ -81,6 +82,7 @@ def create_app() -> FastAPI:
         return {"status": "ok", "version": __version__, "environment": settings.app_env}
 
     app.include_router(system)
+    app.include_router(auth_router)
     return app
 
 

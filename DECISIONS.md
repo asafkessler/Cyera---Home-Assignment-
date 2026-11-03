@@ -129,9 +129,20 @@ from. Two options:
 I chose sign-up + login. There is no email verification, password reset, or
 SSO; those are outside the scope of a POC and are noted as production work.
 
-**Assumptions:** the email address is the unique identifier; passwords must
-meet a minimal length; a generic "invalid email or password" message is
-returned on failed login so the app does not reveal which accounts exist.
+**Assumptions:** the email address is the unique identifier (normalised to
+lower case); passwords must be at least 8 characters; registering logs the
+user in immediately, since a separate login right after sign-up adds a step
+without adding security.
+
+**Two small details that matter for security:**
+
+- A failed login returns the same generic "invalid email or password" for an
+  unknown email and for a wrong password, so the app does not reveal which
+  accounts exist.
+- A login attempt for an unknown email still runs a bcrypt comparison against
+  a dummy hash. Without this, an unknown email would answer in microseconds
+  and a known one in tens of milliseconds, and response timing alone would
+  reveal which emails are registered.
 
 ### 1.2 Secure session management
 
