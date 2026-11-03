@@ -1,0 +1,39 @@
+# ---------------------------------------------------------------------------
+# Secrets - NEVER commit these.
+#
+# .env holds app-level secrets (encryption key, session secret, optional
+# credentials for the blog-digest automation). Each developer / reviewer
+# creates their own copy from .env.example, which IS committed and lists
+# every variable name without values.
+#
+# Jira user credentials are NOT stored here at all: users enter them in the
+# UI and the app stores them encrypted in its database (multi-tenant).
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Local database (SQLite) and Prisma artifacts
+*.db
+*.db-journal
+*.sqlite
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
