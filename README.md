@@ -49,27 +49,53 @@ _To be documented._
 
 ### Option B: Local (without Docker)
 
-**1. Configuration.** From the repository root, create your `.env` and generate
-the two secrets it needs:
+**1. Configuration and backend setup.** Run from the repository root. Pick
+the block for your operating system.
+
+macOS / Linux:
 
 ```bash
 cp .env.example .env
 ```
 
 ```bash
-cd backend && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```
 
 ```bash
-python -m app.keys >> ../.env
+.venv/bin/python -m app.keys >> ../.env
 ```
 
-(On Windows, activate with `.venv\Scripts\activate` instead of `source .venv/bin/activate`.)
+Windows (PowerShell):
 
-**2. Backend.** From `backend/`, with the virtual environment active:
+```powershell
+Copy-Item .env.example .env
+```
+
+```powershell
+cd backend; python -m venv .venv; .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+```powershell
+.\.venv\Scripts\python.exe -m app.keys | Add-Content -Encoding utf8 ..\.env
+```
+
+The third command generates the two required secrets and appends them to
+`.env`. The commands call the virtual environment's Python directly, so no
+"activate" step is needed.
+
+**2. Backend.** From `backend/`:
+
+macOS / Linux:
 
 ```bash
-uvicorn app.main:app --reload --port 8000
+.venv/bin/python -m uvicorn app.main:app --reload --port 8000
+```
+
+Windows (PowerShell):
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
 The API is now at http://localhost:8000. Interactive documentation (Swagger UI)
@@ -78,10 +104,10 @@ http://localhost:8000/api/health.
 
 **3. Frontend.** _To be documented._
 
-**Running the backend tests:**
+**Running the backend tests** (from `backend/`, same Python as above):
 
 ```bash
-cd backend && python -m pytest
+.venv/bin/python -m pytest
 ```
 
 ## Configuration (`.env`)
