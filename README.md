@@ -107,7 +107,23 @@ their own in the app after logging in, and they are stored encrypted per user.
 
 ## Connecting your Jira workspace
 
-_To be documented._
+Each user connects their own Jira Cloud workspace from inside the app, after
+logging in. You need three things:
+
+1. **Site URL**: your Jira address, e.g. `https://your-team.atlassian.net`.
+2. **Email**: the Atlassian account email.
+3. **API token**: create one at
+   https://id.atlassian.com/manage-profile/security/api-tokens
+   ("Create API token", classic, not scoped). Copy it immediately; Atlassian
+   shows it only once.
+
+The app verifies the three values against Jira before saving them, so a typo
+is reported right away. The token is stored encrypted and is never shown
+again; you can disconnect at any time, which deletes it.
+
+Until the web UI is in place, you can do this from the interactive API docs
+at http://localhost:8000/api/docs: `POST /api/auth/register`, then
+`PUT /api/jira/connection`, then `GET /api/jira/projects`.
 
 ## Using the REST API
 

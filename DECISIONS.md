@@ -21,9 +21,9 @@ applications inside a single repository (monorepo).**
 
 | Layer | Choice | Reason |
 |---|---|---|
-| Backend | Python 3, FastAPI | Input validation and typed request/response models via Pydantic; OpenAPI (Swagger) documentation generated from the code; native async for calls to Jira |
+| Backend | Python 3, FastAPI | Input validation and typed request/response models via Pydantic; OpenAPI (Swagger) documentation generated from the code; dependency injection that keeps routes thin. Routes are synchronous and run in FastAPI's thread pool, which is simpler to reason about than mixing async handlers with a synchronous database layer |
 | Database | SQLite via SQLAlchemy | See the Database section below |
-| Jira client | httpx | Async HTTP client; no dependency on an Atlassian SDK, so every call to Jira is explicit and reviewable |
+| Jira client | httpx | No dependency on an Atlassian SDK, so every call to Jira is explicit and reviewable, and tests plug in a fake Jira as an httpx transport without network access |
 | Password hashing | bcrypt | Industry standard |
 | Credential encryption | `cryptography` (Fernet, AES-128-CBC + HMAC) | Authenticated symmetric encryption in one call; key supplied via environment |
 | Frontend | React + Vite + TypeScript | Small, widely understood; Vite gives a fast dev server and a static build |

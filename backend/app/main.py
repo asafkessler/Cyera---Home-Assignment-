@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.auth.router import router as auth_router
+from app.jira.router import router as jira_router
 from app.config import get_settings
 from app.core.errors import register_error_handlers
 from app.db import init_db
@@ -83,6 +84,7 @@ def create_app() -> FastAPI:
 
     app.include_router(system)
     app.include_router(auth_router)
+    app.include_router(jira_router)
     return app
 
 
