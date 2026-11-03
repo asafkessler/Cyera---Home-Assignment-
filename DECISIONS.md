@@ -9,6 +9,65 @@ Setup instructions live in [README.md](README.md).
 
 ---
 
+## Cross-cutting technology choices
+
+These decisions are not tied to a single functional requirement; they shape
+the whole project.
+
+### Stack
+
+_To be documented._
+
+### Database: SQLite, with a one-line path to PostgreSQL
+
+**Decision: SQLite for the POC, accessed through an ORM so that switching to
+PostgreSQL is a configuration change, not a code change.**
+
+The assignment asks for a solution that is "runnable in the easiest, most
+frictionless way possible". The database is the first place that requirement
+bites:
+
+- **PostgreSQL is a server.** It runs as a separate process, listens on a port,
+  and the app connects to it over the network with credentials. A reviewer
+  would have to install it, start it, create a database and a user, and
+  configure the connection string before seeing the app at all.
+- **SQLite is a library.** The whole database is a single file in the project
+  directory, created automatically on first run. The driver ships with Python.
+  No installation, no background process, no credentials.
+
+For this POC the data is small and simple (users, Jira connections, tickets
+created through the app, API keys), and the write load is a handful of
+requests per minute. SQLite handles that comfortably.
+
+**Why production would use PostgreSQL instead**, and what I am consciously
+giving up:
+
+- **Concurrent writers.** SQLite locks the whole file for a write, so writes
+  are serialized. PostgreSQL supports thousands of concurrent writers.
+- **Horizontal scaling.** Several app instances cannot share one SQLite file.
+  PostgreSQL is a central server every instance connects to.
+- **Access control.** Anyone who can read the SQLite file reads everything.
+  PostgreSQL has users, roles and row-level permissions.
+- **Richer features.** Strict typing, JSON operators, full-text search, online
+  backups and replication.
+
+**How the switch stays cheap:** the application code never writes
+SQLite-specific SQL. It works against ORM models, and the ORM generates the
+dialect. The only difference between the two databases is the connection
+string in `.env`:
+
+```
+DATABASE_URL=sqlite:///./identityhub.db
+DATABASE_URL=postgresql://user:password@host/identityhub
+```
+
+**Why not simply add a PostgreSQL container to Docker Compose:** it would be
+easy, but then the non-Docker path in the README would require installing
+PostgreSQL again. I want both paths (Docker and local) to work with zero
+external services.
+
+---
+
 ## 1. Jira Integration + Authentication
 
 ### 1.1 User login to the app + logout
