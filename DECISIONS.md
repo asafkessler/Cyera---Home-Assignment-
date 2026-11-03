@@ -295,7 +295,19 @@ change.
 - **Validation and errors:** the form validates before submitting, and every
   failure from Jira is translated into a message a user can act on (for
   example "You do not have permission to create issues in this project"
-  rather than a raw HTTP 403).
+  rather than a raw HTTP 403). Jira answers 400 for several unrelated
+  problems; the service inspects Jira's message and turns an unknown project
+  into 404 `project_not_found` and an unavailable issue type into a 422 that
+  names the field, so the UI can point at the right input.
+- **Description format:** Jira Cloud's v3 API requires descriptions in
+  Atlassian Document Format (ADF), a JSON tree. One module (`description.py`)
+  owns that format. The structured facts (severity, identity type, how and
+  when it was reported) are rendered as a bullet list at the top, followed by
+  the free text as paragraphs, so the ticket is readable in any project
+  without custom fields.
+- **Labels:** every issue gets `identityhub` and `nhi-finding`, so Jira users
+  can filter for app-created tickets with JQL even though the app itself
+  relies on its local record (see section 3).
 
 ---
 
