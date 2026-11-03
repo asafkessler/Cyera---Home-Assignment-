@@ -14,9 +14,49 @@ Setup instructions live in [README.md](README.md).
 These decisions are not tied to a single functional requirement; they shape
 the whole project.
 
-### Stack
+### Stack: Python (FastAPI) backend + React (Vite) frontend, in one repository
 
-_To be documented._
+**Decision: a Python backend and a React frontend, as two separate
+applications inside a single repository (monorepo).**
+
+| Layer | Choice | Reason |
+|---|---|---|
+| Backend | Python 3, FastAPI | Input validation and typed request/response models via Pydantic; OpenAPI (Swagger) documentation generated from the code; native async for calls to Jira |
+| Database | SQLite via SQLAlchemy | See the Database section below |
+| Jira client | httpx | Async HTTP client; no dependency on an Atlassian SDK, so every call to Jira is explicit and reviewable |
+| Password hashing | bcrypt | Industry standard |
+| Credential encryption | `cryptography` (Fernet, AES-128-CBC + HMAC) | Authenticated symmetric encryption in one call; key supplied via environment |
+| Frontend | React + Vite + TypeScript | Small, widely understood; Vite gives a fast dev server and a static build |
+| Running | Docker Compose, plus a documented local path | Two ways to run, so at least one works on any reviewer's machine |
+
+**Why two applications and not one.** The assignment explicitly evaluates
+"clear separation between UI and backend layers". Keeping the frontend as its
+own application with its own dependencies makes that separation physical:
+the UI cannot import backend code, and the two communicate only over HTTP
+through the same API that any other client would use. The alternative, a
+backend that also renders HTML pages, would have put both layers in one
+process and blurred the boundary I am being asked to demonstrate.
+
+**Why one repository and not two.** A single `git clone` and a single command
+to run everything. Two repositories would double the setup steps for the
+reviewer without adding any architectural clarity.
+
+**Why Python for the backend.** The backend holds everything that matters for
+the evaluation: session handling, tenant isolation, credential encryption,
+API-key authentication, and error handling around Jira. I chose the language
+in which I can reason about and defend that code most precisely. FastAPI in
+particular gives request validation and API documentation for free, which
+directly serves requirement 4 (REST API).
+
+**Alternative considered: Node.js + TypeScript end to end.** One language for
+both layers, one toolchain, and a shared type definition for the API contract.
+This is a perfectly good choice for a project of this shape, and arguably the
+smoother one. I rejected it only because the backend is where the risk and
+the scrutiny are, and that is where I want the strongest footing.
+
+**Alternative considered: Next.js full-stack.** Fastest to build, but the API
+routes and the UI live in the same framework and the same process, which
+works against the layer separation being evaluated.
 
 ### Database: SQLite, with a one-line path to PostgreSQL
 
