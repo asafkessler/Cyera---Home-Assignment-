@@ -15,14 +15,21 @@
 
 # Dependencies
 node_modules/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
 
 # Build output
 dist/
 build/
 
-# Local database (SQLite) and Prisma artifacts
+# Local database (SQLite)
+backend/data/
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 *.sqlite
 
 # Logs

@@ -1,0 +1,21 @@
+# Web framework and server
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Settings and validation
+pydantic==2.10.4
+pydantic-settings==2.7.1
+email-validator==2.2.0
+
+# Database
+sqlalchemy==2.0.36
+
+# Outbound HTTP (Jira)
+httpx==0.28.1
+
+# Security primitives
+bcrypt==4.2.1
+cryptography==44.0.0
+
+# Tests
+pytest==8.3.4

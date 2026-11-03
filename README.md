@@ -31,7 +31,13 @@ Design decisions and assumptions are documented in [DECISIONS.md](DECISIONS.md).
 
 ## Prerequisites
 
-_To be documented once the stack is finalized._
+Either:
+
+- **Docker** (Docker Desktop or Docker Engine with Compose), or
+- **Python 3.11+** and **Node.js 20+** for running without Docker.
+
+Plus a **Jira Cloud** account (free tier is fine) and an Atlassian API token
+for connecting your workspace, see [Connecting your Jira workspace](#connecting-your-jira-workspace).
 
 ## Running the project
 
@@ -43,11 +49,61 @@ _To be documented._
 
 ### Option B: Local (without Docker)
 
-_To be documented._
+**1. Configuration.** From the repository root, create your `.env` and generate
+the two secrets it needs:
+
+```bash
+cp .env.example .env
+```
+
+```bash
+cd backend && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+```
+
+```bash
+python -m app.keys >> ../.env
+```
+
+(On Windows, activate with `.venv\Scripts\activate` instead of `source .venv/bin/activate`.)
+
+**2. Backend.** From `backend/`, with the virtual environment active:
+
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+The API is now at http://localhost:8000. Interactive documentation (Swagger UI)
+is at http://localhost:8000/api/docs, and a health check at
+http://localhost:8000/api/health.
+
+**3. Frontend.** _To be documented._
+
+**Running the backend tests:**
+
+```bash
+cd backend && python -m pytest
+```
 
 ## Configuration (`.env`)
 
-_To be documented. A committed `.env.example` will list every variable._
+All configuration lives in one `.env` file in the repository root, which git
+ignores. [`.env.example`](.env.example) lists every variable with comments.
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `APP_SECRET_KEY` | yes | Random string (32+ chars) used for session material |
+| `APP_ENCRYPTION_KEY` | yes | Fernet key that encrypts stored Jira API tokens at rest |
+| `DATABASE_URL` | no | SQLAlchemy URL. Defaults to a SQLite file under `backend/data/`. Point it at PostgreSQL for production |
+| `SESSION_TTL_HOURS` | no | Session lifetime, default 168 (7 days) |
+| `COOKIE_SECURE` | no | Set `true` behind HTTPS |
+| `ANTHROPIC_API_KEY` | bonus only | Used by the blog-digest automation for the AI summary |
+
+Both secrets can be generated with `python -m app.keys` from the `backend/`
+directory. If either is missing or malformed, the backend refuses to start and
+prints exactly what to do.
+
+Jira credentials are **not** environment configuration: every user enters
+their own in the app after logging in, and they are stored encrypted per user.
 
 ## Connecting your Jira workspace
 
