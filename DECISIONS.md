@@ -317,7 +317,27 @@ production would reconcile periodically or on click.
 
 ## 4. REST API
 
-**Decisions (to be refined during implementation):**
+**Decision: ticket creation is implemented exactly once, as a single service
+function, and both the UI endpoint and the public API endpoint call it.**
+
+The form and the public API are two entry points into the same use case. If
+each had its own implementation, they would drift: one would add the
+`identityhub` label and the other would forget it, one would record the
+ticket locally and the other would not, one would validate severity and the
+other would accept anything. Instead, `tickets/service.py` owns the logic
+(check the user's Jira connection, build the description, create the issue in
+Jira, translate Jira's errors, record the ticket), and the two routers differ
+only in **how the caller is authenticated**: session cookie for the UI,
+API key for external systems. Both resolve to a user, and from that point on
+the code path is identical.
+
+The consequence worth stating: a ticket created by a scanner through the API
+goes through the same validation, gets the same label, is recorded in the same
+table, appears in the same recent-tickets view, and is isolated to the same
+tenant as a ticket created by a person in the form. Multi-tenancy and
+consistency are properties of one function, not of each endpoint.
+
+**Further decisions (to be refined during implementation):**
 
 - **Per-user API keys.** A user generates a key from the UI. The key is shown
   **once**, and only a hash of it is stored, so a database leak does not leak
