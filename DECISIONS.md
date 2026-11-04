@@ -355,9 +355,34 @@ marker. The view is filtered by the selected project and by the current user,
 and it includes tickets created through the REST API as well as the form,
 since both are "created from this app".
 
-**Trade-off accepted:** if a ticket is deleted in Jira, it still appears in
-the list until the app reconciles. For a POC this is acceptable and documented;
-production would reconcile periodically or on click.
+**What this means in practice.** The list is scoped **per installation and
+per user**: it shows the tickets that *this* database recorded for *this*
+account. Two consequences, both observed during testing and both intentional:
+
+- Two users of the same installation connected to the same Jira project each
+  see only their own tickets. That is the multi-tenancy requirement, and a
+  JQL-based list could not provide it: Jira does not know which IdentityHub
+  user created an issue.
+- Two installations (a local run, a Docker run, the GitHub Actions job)
+  connected to the same Jira project are three independent clients of that
+  Jira. A ticket created by one does not appear in another's list, even
+  though it carries the `identityhub` label. The CI run that created
+  SCRUM-13 is, from the Docker installation's point of view, just another
+  system that writes to the same Jira.
+
+**Trade-offs accepted:** if a ticket is deleted or renamed in Jira, the list
+does not notice until the app reconciles; and a fresh database starts with an
+empty list even when the project already holds app-created tickets. For a POC
+this is acceptable and documented.
+
+**Production follow-up: reconciliation.** Keep the local record as the source
+of truth for *origin* (who created what, from where), and reconcile against
+Jira for *state*: on refresh, one JQL query for the recorded keys (`key in
+(...)`) marks deleted issues and refreshes titles, best-effort, falling back
+to the local list when Jira is unavailable. Optionally, a second query for
+`labels = identityhub` can surface tickets created by other installations as
+"from another IdentityHub installation". The label is set on every issue
+today precisely to keep that door open.
 
 ---
 
