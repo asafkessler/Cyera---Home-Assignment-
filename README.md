@@ -142,7 +142,7 @@ Copy-Item .env.example .env
 ```
 
 ```powershell
-cd backend; python -m venv .venv; .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+cd backend; py -3.13 -m venv .venv; .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
 ```powershell
@@ -151,7 +151,9 @@ cd backend; python -m venv .venv; .\.venv\Scripts\python.exe -m pip install -r r
 
 The third command generates the two required secrets and appends them to
 `.env`. The commands call the virtual environment's Python directly, so no
-"activate" step is needed.
+"activate" step is needed. On Windows, `py -3.13` picks that interpreter
+explicitly (use `-3.12` or `-3.11` if that is what you have); a bare
+`python` may resolve to an older installation.
 
 **2. Backend.** From `backend/`:
 
@@ -358,8 +360,9 @@ prints the ticket that would be created, and
 .venv/bin/python digest.py
 ```
 
-creates it. On Windows use `.venv\Scripts\python.exe` instead of
-`.venv/bin/python`. Tests: `.venv/bin/python -m pytest`.
+creates it. On Windows create the environment with `py -3.13 -m venv .venv`
+and use `.venv\Scripts\python.exe` instead of `.venv/bin/python`.
+Tests: `.venv/bin/python -m pytest`.
 
 **Scheduled run (GitHub Actions).** `.github/workflows/blog-digest.yml` runs
 the digest daily and on demand. The job is self-contained: it starts the

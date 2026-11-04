@@ -66,7 +66,7 @@ def fetch_latest_post(blog_url: str, http: httpx.Client) -> Post:
     article = _extract_article_text(page)
     if not article:
         raise DigestError(f"Fetched {url} but could not extract readable text from it.")
-    return Post(title=title or _html_title(page) or url, url=url, published=published or _meta(page, "article:published_time"), text=article[:MAX_ARTICLE_CHARS])
+    return Post(title=title or _html_title(page) or url, url=url, published=published or _published_date(page), text=article[:MAX_ARTICLE_CHARS])
 
 
 def _latest_from_feed(blog_url: str, http: httpx.Client) -> tuple[str, str, str | None] | None:
@@ -150,47 +150,98 @@ def _links(page: str) -> list[str]:
 
 
 class _TextExtractor(HTMLParser):
-    """Collects visible text, preferring <article>/<main> when present."""
+    """
+    Collects the text of paragraph-like elements (<p>, headings, list items).
 
-    SKIP = {"script", "style", "noscript", "nav", "header", "footer", "svg", "form"}
+    Navigation menus, buttons and footers are made of short links inside
+    <div>s, while an article body is made of paragraphs, so keeping only
+    paragraph-like blocks is a simple and robust way to isolate the content,
+    with or without an <article>/<main> wrapper around it.
+    """
+
+    SKIP = {"script", "style", "noscript", "nav", "header", "footer", "svg", "form", "button"}
+    BLOCKS = {"p", "h1", "h2", "h3", "h4", "li", "blockquote", "pre"}
 
     def __init__(self) -> None:
         super().__init__()
         self._skip_depth = 0
+        self._block_depth = 0
         self._in_content = 0
-        self.content: list[str] = []   # text inside <article> or <main>
-        self.everything: list[str] = []
+        self._current: list[str] = []
+        self.blocks: list[tuple[bool, str]] = []  # (inside <article>/<main>, text)
 
     def handle_starttag(self, tag, attrs):
         if tag in self.SKIP:
             self._skip_depth += 1
-        if tag in {"article", "main"}:
+        elif tag in {"article", "main"}:
             self._in_content += 1
-        if tag in {"p", "br", "li", "h1", "h2", "h3", "h4", "div"}:
-            self._emit("\n")
+        elif tag in self.BLOCKS:
+            self._flush()
+            self._block_depth += 1
+        elif tag == "br" and self._block_depth:
+            self._current.append(" ")
 
     def handle_endtag(self, tag):
         if tag in self.SKIP and self._skip_depth:
             self._skip_depth -= 1
-        if tag in {"article", "main"} and self._in_content:
+        elif tag in {"article", "main"} and self._in_content:
             self._in_content -= 1
+        elif tag in self.BLOCKS and self._block_depth:
+            self._block_depth -= 1
+            self._flush()
 
     def handle_data(self, data):
-        if not self._skip_depth:
-            self._emit(data)
+        if not self._skip_depth and self._block_depth:
+            self._current.append(data)
 
-    def _emit(self, text: str) -> None:
-        self.everything.append(text)
-        if self._in_content:
-            self.content.append(text)
+    def close(self):
+        self._flush()
+        super().close()
+
+    def _flush(self) -> None:
+        text = re.sub(r"\s+", " ", "".join(self._current)).strip()
+        self._current = []
+        if text:
+            self.blocks.append((self._in_content > 0, text))
+
+
+MIN_WORDS_PER_BLOCK = 3   # "Request a Demo", "Published on", author names: not content
 
 
 def _extract_article_text(page: str) -> str:
     extractor = _TextExtractor()
     extractor.feed(page)
-    raw = "".join(extractor.content) or "".join(extractor.everything)
-    lines = [re.sub(r"\s+", " ", line).strip() for line in raw.splitlines()]
-    return "\n".join(line for line in lines if line)
+    extractor.close()
+    blocks = extractor.blocks
+    inside = [text for in_content, text in blocks if in_content]
+    candidates = inside if len(" ".join(inside)) >= 200 else [text for _, text in blocks]
+    lines: list[str] = []
+    for text in candidates:
+        if len(text.split()) < MIN_WORDS_PER_BLOCK:
+            continue
+        if text not in lines:  # Webflow pages repeat the title in a hidden duplicate block
+            lines.append(text)
+    return "\n".join(lines)
+
+
+_DATE_PATTERNS = [
+    r'"datePublished"\s*:\s*"([^"]+)"',                                  # JSON-LD
+    r"Published on\s*(?:</[^>]+>\s*<[^>]+>\s*)*([A-Z][a-z]{2,8}\.? \d{1,2}, \d{4})",  # "Published on Jul 28, 2026", possibly across tags
+    r"datetime=[\"']([^\"']+)[\"']",                                     # <time datetime="...">
+]
+
+
+def _published_date(page: str) -> str | None:
+    """Best effort: Open Graph / article meta, JSON-LD, <time>, or the visible 'Published on' text."""
+    for prop in ("article:published_time", "og:article:published_time", "date", "pubdate"):
+        value = _meta(page, prop)
+        if value:
+            return value
+    for pattern in _DATE_PATTERNS:
+        match = re.search(pattern, page)
+        if match:
+            return match.group(1).strip()
+    return None
 
 
 def _html_title(page: str) -> str | None:

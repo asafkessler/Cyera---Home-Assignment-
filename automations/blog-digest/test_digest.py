@@ -28,7 +28,7 @@ ARTICLE_HTML = """<html><head><title>Ignored title</title>
 <meta property="article:published_time" content="2026-11-03T10:00:00Z"></head>
 <body><header>Site header</header><nav>menu</nav>
 <article><h1>First article title</h1><p>Paragraph one about service accounts.</p>
-<script>var x = 1;</script><p>Paragraph   two.</p></article>
+<script>var x = 1;</script><p>Paragraph   two is   here.</p></article>
 <footer>footer text</footer></body></html>"""
 
 
@@ -60,7 +60,7 @@ def test_html_fallback_picks_first_article_link_and_reads_metadata():
     assert post.title == "First article title"                         # og:title beats <title>
     assert post.published == "2026-11-03T10:00:00Z"
     assert "Site header" not in post.text and "var x" not in post.text and "footer text" not in post.text
-    assert "Paragraph two." in post.text                                 # whitespace normalised
+    assert "Paragraph two is here." in post.text                                 # whitespace normalised
 
 
 def test_no_posts_is_a_clear_error():
@@ -102,3 +102,39 @@ def test_state_roundtrip(tmp_path: Path):
     digest.save_state(path, {"last_post_url": "u", "issue_key": "SCRUM-1"})
     assert json.loads(path.read_text())["issue_key"] == "SCRUM-1"
     assert digest.load_state(path)["last_post_url"] == "u"
+
+
+WEBFLOW_HTML = """<html><head><title>Oasis and Cyera to Build Next-Gen AI Security Platform</title>
+<meta property="og:title" content="Oasis and Cyera to Build Next-Gen AI Security Platform"></head>
+<body>
+<div class="nav"><a href="/demo">Request a Demo</a><a href="/resources">Resource Center</a><a href="/blog">/Blog</a><a href="/">/</a></div>
+<h1>Building The Next-Generation AI Security Platform</h1>
+<div class="hidden"><h1>Building The Next-Generation AI Security Platform</h1></div>
+<div class="author"><div>Danny Brickman</div><div>Co-founder &amp; CEO</div></div>
+<div class="meta"><div>Published on</div><div>Jul 28, 2026</div><div>Updated</div><div>Jul 28, 2026</div></div>
+<div class="w-richtext">
+<p>Today, Oasis Security steps into a new phase of acceleration. We have signed a letter of intent to be acquired by Cyera.</p>
+<p>AI agents have moved from pilots into production faster than any identity model was built to handle.</p>
+<h2>What this means</h2>
+<ul><li>Access and data are the two control points.</li><li>Go</li></ul>
+</div>
+<div class="footer"><a href="/privacy">Privacy policy</a></div>
+</body></html>"""
+
+
+def test_webflow_page_without_article_wrapper():
+    text = digest._extract_article_text(WEBFLOW_HTML)
+    lines = text.splitlines()
+    assert lines[0] == "Building The Next-Generation AI Security Platform"   # title once, duplicate dropped
+    assert "Request a Demo" not in text and "Resource Center" not in text and "Privacy policy" not in text
+    assert "Danny Brickman" not in text and "Published on" not in text        # short non-content blocks dropped
+    assert "letter of intent to be acquired by Cyera" in text
+    assert "What this means" in text and "Access and data are the two control points." in text
+    assert "Go" not in lines                                                   # one-word list item dropped
+
+
+def test_published_date_fallbacks():
+    assert digest._published_date(WEBFLOW_HTML) == "Jul 28, 2026"
+    assert digest._published_date('<script type="application/ld+json">{"datePublished": "2026-07-28T10:00:00Z"}</script>') == "2026-07-28T10:00:00Z"
+    assert digest._published_date('<time datetime="2026-01-02">Jan 2</time>') == "2026-01-02"
+    assert digest._published_date("<p>nothing</p>") is None
