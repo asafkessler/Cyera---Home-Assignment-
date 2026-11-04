@@ -62,7 +62,7 @@ export function ApiKeysPage() {
       <div className="page-head"><h1>API keys</h1></div>
       <p className="muted">
         Let scanners and CI/CD pipelines report findings without the form. Requests made with a key act as you and create tickets in your Jira workspace.
-        See the <a href="/api/docs" target="_blank" rel="noopener noreferrer">API documentation</a>.
+        Send the key in the <code>X-API-Key</code> header. To try it in the <a href="/api/docs" target="_blank" rel="noopener noreferrer">API documentation</a>, click <strong>Authorize</strong>, paste the key once, and every request under <em>Public API v1</em> will carry it.
       </p>
 
       <div className="grid-2">
