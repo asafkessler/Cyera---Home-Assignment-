@@ -87,8 +87,27 @@ provided, the backend generates them once and keeps them in the `app-data`
 volume (see [Configuration](#configuration-env)). The first run builds both
 images, which takes a minute or two.
 
-To stop: `Ctrl+C`, then `docker compose down`. Add `-v` to also delete the
-data volume (accounts, Jira connections, tickets, API keys).
+**Stopping, and what happens to your data**
+
+```bash
+docker compose down
+```
+
+stops and removes the containers but **keeps** the `app-data` volume: your
+accounts, Jira connections, tickets and API keys are still there on the next
+`docker compose up`. Containers are disposable; the data lives in the volume
+on purpose. To start from a clean slate (delete the database and the
+auto-generated secrets as well):
+
+```bash
+docker compose down -v
+```
+
+Note that the Docker setup and the local setup (Option B) use **separate
+databases**: the volume for Docker, `backend/data/identityhub.db` for local.
+An account registered in one does not exist in the other, and the
+recent-tickets view shows the tickets *that database* recorded (see
+"Where is the data?" below).
 
 What runs:
 
@@ -198,6 +217,19 @@ secrets are supplied explicitly and are never stored next to the data.
 
 Jira credentials are **not** environment configuration: every user enters
 their own in the app after logging in, and they are stored encrypted per user.
+
+**Where is the data?** SQLite, one file:
+
+| Setup | Location |
+|---|---|
+| Local (Option B) | `backend/data/identityhub.db` (plus `-wal` / `-shm` companions), ignored by git |
+| Docker | `/data/identityhub.db` inside the `backend` container, stored in the named volume `app-data`. Inspect it with `docker compose exec backend ls -la /data`, or in Docker Desktop under **Volumes** |
+
+The recent-tickets view is served from this database, not from Jira: the app
+lists the tickets **it** created and recorded. A fresh database therefore
+shows an empty list even if the same Jira project already contains tickets
+created from another installation. Reconciling from Jira by label is a
+documented production follow-up (see DECISIONS.md, section 3).
 
 ## Connecting your Jira workspace
 
