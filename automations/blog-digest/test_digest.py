@@ -138,3 +138,12 @@ def test_published_date_fallbacks():
     assert digest._published_date('<script type="application/ld+json">{"datePublished": "2026-07-28T10:00:00Z"}</script>') == "2026-07-28T10:00:00Z"
     assert digest._published_date('<time datetime="2026-01-02">Jan 2</time>') == "2026-01-02"
     assert digest._published_date("<p>nothing</p>") is None
+
+
+def test_visible_heading_beats_og_title():
+    http = _client({
+        BLOG: httpx.Response(200, text='<html><body><a href="/blog/next-gen">x</a></body></html>'),
+        "https://blog.example.com/blog/next-gen": httpx.Response(200, text=WEBFLOW_HTML),
+    })
+    post = digest.fetch_latest_post(BLOG, http)
+    assert post.title == "Building The Next-Generation AI Security Platform"   # the <h1>, not og:title
