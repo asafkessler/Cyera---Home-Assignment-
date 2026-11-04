@@ -18,8 +18,21 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 log = logging.getLogger(__name__)
+
+
+class ErrorBody(BaseModel):
+    code: str = Field(description="Stable, machine-readable error code.", examples=["jira_not_connected"])
+    message: str = Field(description="Human-readable explanation and what to do next.")
+    details: dict[str, Any] = Field(default_factory=dict, description="Optional structured context (e.g. offending fields).")
+
+
+class ErrorResponse(BaseModel):
+    """The one shape every error response has."""
+
+    error: ErrorBody
 
 
 class AppError(Exception):
@@ -108,6 +121,32 @@ class JiraUnavailable(AppError):
     status_code = 502
     code = "jira_unavailable"
     message = "Jira could not be reached or returned an unexpected error. Please try again shortly."
+
+
+# --- OpenAPI documentation helper ----------------------------------------------
+
+def error_responses(*errors: type[AppError], **extra_examples: dict[str, Any]) -> dict[int, dict[str, Any]]:
+    """
+    Build the `responses=` mapping for a route from the AppError classes it can
+    raise, so the API docs show, for every endpoint, exactly which status codes
+    and error codes to expect, with a realistic example body for each.
+
+    Several errors can share a status code (e.g. 404 for both a missing project
+    and a missing API key); they are merged into one entry with named examples.
+    """
+    responses: dict[int, dict[str, Any]] = {}
+    for err in errors:
+        example = err().to_body()
+        entry = responses.setdefault(
+            err.status_code,
+            {"model": ErrorResponse, "description": "", "content": {"application/json": {"examples": {}}}},
+        )
+        entry["content"]["application/json"]["examples"][err.code] = {
+            "summary": err.code,
+            "value": example,
+        }
+        entry["description"] = ", ".join(f"`{code}`" for code in entry["content"]["application/json"]["examples"])
+    return responses
 
 
 # --- Handlers ----------------------------------------------------------------

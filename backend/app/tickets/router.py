@@ -1,6 +1,16 @@
 from fastapi import APIRouter, Query, status
 
 from app.core.deps import Cipher, CurrentUser, DbSession
+from app.core.errors import (
+    JiraAuthFailed,
+    JiraNotConnected,
+    JiraPermissionDenied,
+    JiraUnavailable,
+    NotAuthenticated,
+    ProjectNotFound,
+    ValidationFailed,
+    error_responses,
+)
 from app.tickets import service
 from app.tickets.schemas import CreateTicketRequest, TicketResponse, TicketSource
 
@@ -12,12 +22,10 @@ router = APIRouter(prefix="/api/tickets", tags=["Tickets"])
     status_code=status.HTTP_201_CREATED,
     response_model=TicketResponse,
     summary="Create an NHI finding ticket",
-    responses={
-        404: {"description": "Project not found in the connected workspace"},
-        409: {"description": "No Jira workspace connected"},
-        422: {"description": "Invalid input, or issue type not available in the project"},
-        502: {"description": "Jira unreachable or returned an unexpected error"},
-    },
+    responses=error_responses(
+        NotAuthenticated, JiraNotConnected, ProjectNotFound, ValidationFailed,
+        JiraAuthFailed, JiraPermissionDenied, JiraUnavailable,
+    ),
 )
 def create_ticket(payload: CreateTicketRequest, db: DbSession, cipher: Cipher, user: CurrentUser):
     """Creates a real issue in the user's Jira and records it for the recent-tickets view."""
@@ -28,6 +36,7 @@ def create_ticket(payload: CreateTicketRequest, db: DbSession, cipher: Cipher, u
     "",
     response_model=list[TicketResponse],
     summary="Recent tickets created from this app",
+    responses=error_responses(NotAuthenticated, ValidationFailed),
 )
 def list_recent(
     db: DbSession,

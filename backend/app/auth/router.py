@@ -4,6 +4,7 @@ from app.auth import service
 from app.auth.schemas import LoginRequest, RegisterRequest, UserResponse
 from app.config import Settings
 from app.core.deps import AppSettings, CurrentUser, DbSession
+from app.core.errors import EmailAlreadyRegistered, InvalidCredentials, NotAuthenticated, ValidationFailed, error_responses
 from app.models import User
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
@@ -39,7 +40,7 @@ def _clear_session_cookie(response: Response, settings: Settings) -> None:
     status_code=status.HTTP_201_CREATED,
     response_model=UserResponse,
     summary="Create an account",
-    responses={409: {"description": "Email already registered"}},
+    responses=error_responses(EmailAlreadyRegistered, ValidationFailed),
 )
 def register(payload: RegisterRequest, response: Response, db: DbSession, settings: AppSettings):
     """Create an account and log in immediately (sets the session cookie)."""
@@ -52,7 +53,7 @@ def register(payload: RegisterRequest, response: Response, db: DbSession, settin
     "/login",
     response_model=UserResponse,
     summary="Log in",
-    responses={401: {"description": "Invalid email or password"}},
+    responses=error_responses(InvalidCredentials, ValidationFailed),
 )
 def login(payload: LoginRequest, response: Response, db: DbSession, settings: AppSettings):
     """Verify credentials and set the session cookie."""
@@ -70,6 +71,6 @@ def logout(request: Request, response: Response, db: DbSession, settings: AppSet
     _clear_session_cookie(response, settings)
 
 
-@router.get("/me", response_model=UserResponse, summary="Current user")
+@router.get("/me", response_model=UserResponse, summary="Current user", responses=error_responses(NotAuthenticated))
 def me(user: CurrentUser):
     return _to_response(user)

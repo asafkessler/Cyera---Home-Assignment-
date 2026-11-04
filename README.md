@@ -158,7 +158,63 @@ at http://localhost:8000/api/docs: `POST /api/auth/register`, then
 
 ## Using the REST API
 
-_To be documented. Will include a `curl` example._
+External systems (scanners, CI/CD pipelines, automations) can create finding
+tickets without a person filling in a form.
+
+**1. Create an API key.** Log in, open **API keys**, and create a key with a
+name that identifies the system that will use it. The full key is shown
+**once**; store it in that system's secret store. (Before the UI exists:
+`POST /api/keys` in the API docs.)
+
+**2. Send findings.** Put the key in the `X-API-Key` header:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/findings \
+  -H "X-API-Key: ihk_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_key": "SCRUM",
+    "summary": "Stale service account: svc-deploy-prod",
+    "description": "No authentication events in 94 days. Owner team: platform.",
+    "severity": "high",
+    "identity_type": "service_account"
+  }'
+```
+
+A successful call returns `201` with the issue key and a direct link:
+
+```json
+{"issue_key": "SCRUM-12", "issue_url": "https://your-team.atlassian.net/browse/SCRUM-12",
+ "project_key": "SCRUM", "summary": "Stale service account: svc-deploy-prod",
+ "source": "api", "created_at": "2026-11-04T08:15:02Z"}
+```
+
+| Field | Required | Notes |
+|---|---|---|
+| `project_key` | yes | A project in the key owner's workspace. `GET /api/v1/projects` lists them |
+| `summary` | yes | Ticket title, up to 255 characters |
+| `description` | yes | Free text; line breaks become paragraphs |
+| `severity` | no | `low`, `medium`, `high`, `critical` |
+| `identity_type` | no | `service_account`, `api_key`, `service_principal`, `other` |
+| `issue_type` | no | Defaults to `Task`; must exist in the project |
+
+**Errors** all have the same shape, with a stable `code` to branch on:
+
+| Status | `code` | When |
+|---|---|---|
+| 401 | `invalid_api_key` | Header missing, key unknown, or key revoked |
+| 404 | `project_not_found` | Project does not exist or is not visible to the key owner |
+| 409 | `jira_not_connected` | The key owner has not connected a Jira workspace |
+| 422 | `validation_failed` | A field is invalid; `details.fields` names it. Also used when `issue_type` is not available in the project |
+| 502 | `jira_unavailable` | Jira unreachable or returned an unexpected error |
+
+The interactive documentation at http://localhost:8000/api/docs lists every
+endpoint with examples. Click **Authorize**, paste a key, and you can create a
+real ticket from the browser. A machine-readable spec is at
+`/api/openapi.json`.
+
+Tickets created through the API are recorded like any other and appear in
+the app's recent-tickets view with source `api`.
 
 ## Running the Blog Digest automation (bonus)
 
