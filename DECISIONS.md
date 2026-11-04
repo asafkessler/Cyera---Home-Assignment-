@@ -29,6 +29,23 @@ applications inside a single repository (monorepo).**
 | Frontend | React + Vite + TypeScript | Small, widely understood; Vite gives a fast dev server and a static build |
 | Running | Docker Compose, plus a documented local path | Two ways to run, so at least one works on any reviewer's machine |
 
+**Docker details worth knowing:**
+
+- **Zero-config start.** If the two application secrets are not supplied, the
+  backend container generates them once into the data volume. The trade-off
+  is explicit: it puts the encryption key next to the database it protects,
+  which is acceptable for a local evaluation and wrong for production, where
+  the secrets are injected from a secret store. Supplying them in `.env`
+  disables the generation.
+- **One origin.** nginx serves the built UI and proxies `/api` to the backend
+  container, exactly as the Vite dev server does locally. The browser never
+  talks cross-origin, so cookies work without CORS or `SameSite=None`.
+- **Non-root containers**, a health check on the backend that the frontend
+  waits for, and a named volume so data survives restarts.
+- **Windows-safe.** `.gitattributes` pins LF line endings for the entrypoint
+  script, so a clone with `autocrlf` on Windows still produces a container
+  that starts.
+
 **Why two applications and not one.** The assignment explicitly evaluates
 "clear separation between UI and backend layers". Keeping the frontend as its
 own application with its own dependencies makes that separation physical:
