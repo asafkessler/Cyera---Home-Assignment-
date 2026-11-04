@@ -24,7 +24,7 @@ def main() -> int:
         return 2
 
     with httpx.Client(base_url=api_url, timeout=30) as http:
-        email = f"ci-{secrets.token_hex(4)}@digest.local"
+        email = f"ci-{secrets.token_hex(4)}@example.com"
         password = secrets.token_urlsafe(16)
         _check(http.post("/api/auth/register", json={"email": email, "password": password}), "register")
         _check(
