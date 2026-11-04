@@ -24,6 +24,9 @@ and report a finding. The API documentation is at
 http://localhost:8000/api/docs. No `.env` or other setup is needed for a
 local run; Docker is the only prerequisite ([installing it](#prerequisites)).
 
+No Docker, or prefer not to install it? Python 3.11+ and Node.js 20+ are
+enough: see [Option B: Local (without Docker)](#option-b-local-without-docker).
+
 The rest of this document is reference: running without Docker, configuration,
 the REST API, the bonus automation, project layout and security notes. Design
 decisions are in [DECISIONS.md](DECISIONS.md), structure in
