@@ -425,7 +425,7 @@ consistency are properties of one function, not of each endpoint.
 
 ## Bonus: NHI Blog Digest automation
 
-**Decisions (to be refined during implementation):**
+**Decisions:**
 
 - **It goes through the app's REST API**, authenticated with an API key, like
   any external system would. The automation knows nothing about the database
@@ -449,6 +449,27 @@ consistency are properties of one function, not of each endpoint.
 - **Tickets created by the automation appear in the app's recent-tickets
   view automatically**, since they are created through the API and recorded
   like any other.
+- **Finding the post: feed first, HTML second.** The script tries the common
+  RSS/Atom locations and falls back to the first article link on the blog
+  index page, then reads the title, date and body from the article itself
+  (Open Graph metadata, `<article>`/`<main>` text). Only the standard library
+  is used for parsing, so the automation stays dependency-light. A site
+  redesign could break the HTML fallback; the `--print-post` flag exists to
+  check that quickly without spending an API call.
+- **The scheduled run is self-contained.** Nothing is deployed anywhere, so
+  the GitHub Actions job starts the backend from the repository, registers a
+  throwaway account, connects Jira from repository secrets, creates an API
+  key, and runs the digest against `localhost`. It exercises the real API
+  path end to end and leaves real tickets in Jira. The last reported post is
+  kept in the Actions cache so a daily run with no new post creates nothing.
+- **Model and safeguards.** `claude-opus-5-5` by default (configurable),
+  with the API's server-side fallback enabled so that a declined request is
+  retried on a fallback model inside the same call rather than failing the
+  run. A refusal from the whole chain is reported as an error.
+- **The digest is a ticket, not an NHI finding in the strict sense.** It is
+  reported with `identity_type: other` and the standard `Task` issue type,
+  and the summary line is prefixed `NHI Blog Digest:` so it is easy to tell
+  apart from scanner findings in the same project.
 
 ---
 

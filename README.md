@@ -258,7 +258,57 @@ the app's recent-tickets view with source `api`.
 
 ## Running the Blog Digest automation (bonus)
 
-_To be documented._
+`automations/blog-digest/digest.py` fetches the most recent post from
+[oasis.security/blog](https://www.oasis.security/blog), asks Claude for a
+short digest, and reports it as a ticket through the app's public API, like
+any other external system would. It remembers the last post it reported, so
+running it twice does not create two tickets.
+
+**What you need**
+
+| Variable | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` | Required. The AI summary is produced by the Claude API. Without a key the script stops and says so; there is no non-AI fallback, because the assignment asks for an AI-powered summary |
+| `IDENTITYHUB_API_KEY` | Required. Create one in the app under **API keys** |
+| `IDENTITYHUB_API_URL` | Default `http://localhost:8000` |
+| `JIRA_PROJECT_KEY` | Default `SCRUM` |
+| `DIGEST_MODEL` | Default `claude-opus-5-5` |
+
+**Run it locally** (with the backend running):
+
+```bash
+cd automations/blog-digest && python -m venv .venv && .venv/bin/pip install -r requirements.txt
+```
+
+```bash
+.venv/bin/python digest.py --print-post
+```
+
+`--print-post` only shows which post would be used, without calling Claude or
+creating anything. Then, with `ANTHROPIC_API_KEY` and `IDENTITYHUB_API_KEY`
+exported:
+
+```bash
+.venv/bin/python digest.py --dry-run
+```
+
+prints the ticket that would be created, and
+
+```bash
+.venv/bin/python digest.py
+```
+
+creates it. On Windows use `.venv\Scripts\python.exe` instead of
+`.venv/bin/python`. Tests: `.venv/bin/python -m pytest`.
+
+**Scheduled run (GitHub Actions).** `.github/workflows/blog-digest.yml` runs
+the digest daily and on demand. The job is self-contained: it starts the
+backend from the repository, registers a throwaway account, connects the Jira
+workspace from repository secrets, creates an API key, and runs the digest.
+Configure these secrets in the repository (Settings → Secrets and variables
+→ Actions): `ANTHROPIC_API_KEY`, `JIRA_SITE_URL`, `JIRA_EMAIL`,
+`JIRA_API_TOKEN`, and optionally `JIRA_PROJECT_KEY`. The run log shows the
+post, the digest, and the created issue key; the key itself is masked.
 
 ## Project structure
 
