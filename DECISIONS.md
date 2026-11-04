@@ -295,7 +295,7 @@ change.
 
 ## 2. Create NHI Finding Ticket UI
 
-**Decisions (to be refined during implementation):**
+**Decisions:**
 
 - **Project selection:** the project list is fetched live from the connected
   Jira workspace, so the user picks from projects they actually have access

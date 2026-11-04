@@ -123,7 +123,9 @@ JSON body everywhere:
 ```
 
 `code` is stable and machine-readable (for the automation and for the UI to
-branch on); `message` is written for a person.
+branch on); `message` is written for a person. Framework-level errors (unknown
+route, wrong method) and unexpected exceptions are rendered in the same shape,
+the latter as a generic `internal_error` with the cause logged server-side.
 
 ## Data model
 
@@ -274,11 +276,15 @@ Five screens, one typed API client, no global state library:
 | `/login`, `/register` | Auth | Forms; on success redirect to `/` |
 | `/connect` | Connect Jira | Three fields + "Test and connect"; shows the specific error on failure; shown automatically if not connected |
 | `/` | Dashboard | Connection badge, project selector, ticket form, recent tickets list (refreshes after a create) |
-| `/api-keys` | API keys | Create (shows key once with a copy button), list, revoke; includes a ready-to-copy `curl` example |
+| `/keys` | API keys | Create (shows key once with a copy button), list, revoke; includes a ready-to-copy `curl` example |
 
 The API client (`src/api/`) is the only module that performs HTTP calls, maps
 the uniform error body to a typed error, and keeps credentials (the session
 cookie) out of JavaScript entirely.
+
+Frontend routes deliberately avoid the `/api` prefix (the keys page lives at
+`/keys`, not `/api-keys`), because everything under `/api` is forwarded to
+the backend by the dev proxy and by nginx.
 
 ## Running
 
