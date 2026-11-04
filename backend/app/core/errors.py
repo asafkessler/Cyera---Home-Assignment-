@@ -18,6 +18,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, Field
 
 log = logging.getLogger(__name__)
@@ -167,6 +168,13 @@ def register_error_handlers(app: FastAPI) -> None:
         ]
         body = ValidationFailed(details={"fields": fields}).to_body()
         return JSONResponse(status_code=422, content=body)
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_error(_request: Request, exc: StarletteHTTPException) -> JSONResponse:
+        # Framework-level errors (unknown route, wrong method) in the same shape as ours.
+        code = {404: "not_found", 405: "method_not_allowed"}.get(exc.status_code, "http_error")
+        body = {"error": {"code": code, "message": str(exc.detail), "details": {}}}
+        return JSONResponse(status_code=exc.status_code, content=body, headers=getattr(exc, "headers", None))
 
     @app.exception_handler(Exception)
     async def _unexpected(_request: Request, exc: Exception) -> JSONResponse:

@@ -102,7 +102,19 @@ The API is now at http://localhost:8000. Interactive documentation (Swagger UI)
 is at http://localhost:8000/api/docs, and a health check at
 http://localhost:8000/api/health.
 
-**3. Frontend.** _To be documented._
+**3. Frontend.** In a second terminal, from `frontend/`:
+
+```bash
+npm install
+```
+
+```bash
+npm run dev
+```
+
+Open http://localhost:5173. The dev server proxies `/api` to the backend on
+port 8000, so the UI and the API share one origin and the session cookie
+works without any CORS configuration.
 
 **Running the backend tests** (from `backend/`, same Python as above):
 
