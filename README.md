@@ -254,8 +254,8 @@ Scrum project new issues go to the **Backlog** (not the active sprint board)
 until someone pulls them into a sprint; in a Kanban project they appear on the
 board right away. The ticket link in the app always opens the issue directly.
 
-Until the web UI is in place, you can do this from the interactive API docs
-at http://localhost:8000/api/docs: `POST /api/auth/register`, then
+The same can be done without the UI from the interactive API docs at
+http://localhost:8000/api/docs: `POST /api/auth/register`, then
 `PUT /api/jira/connection`, then `GET /api/jira/projects`.
 
 ## Using the REST API
@@ -265,8 +265,8 @@ tickets without a person filling in a form.
 
 **1. Create an API key.** Log in, open **API keys**, and create a key with a
 name that identifies the system that will use it. The full key is shown
-**once**; store it in that system's secret store. (Before the UI exists:
-`POST /api/keys` in the API docs.)
+**once**; store it in that system's secret store. (Equivalent API call:
+`POST /api/keys`.)
 
 **2. Send findings.** Put the key in the `X-API-Key` header:
 
