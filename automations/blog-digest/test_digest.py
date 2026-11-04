@@ -79,7 +79,7 @@ def test_build_finding_shape():
     post = digest.Post(title="T" * 300, url="https://x/blog/p", published="2026-01-01", text="...")
     finding = digest.build_finding(post, "- a\n- b", "SCRUM")
     assert finding["project_key"] == "SCRUM"
-    assert finding["summary"].startswith("NHI Blog Digest: ") and len(finding["summary"]) <= 255
+    assert finding["summary"] == "T" * 255                      # post title, capped at Jira's limit
     assert "Source: https://x/blog/p" in finding["description"] and "Published: 2026-01-01" in finding["description"]
     assert finding["issue_type"] == "Task"
 
