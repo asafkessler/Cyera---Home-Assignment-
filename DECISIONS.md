@@ -466,10 +466,12 @@ consistency are properties of one function, not of each endpoint.
   with the API's server-side fallback enabled so that a declined request is
   retried on a fallback model inside the same call rather than failing the
   run. A refusal from the whole chain is reported as an error.
-- **The digest is a ticket, not an NHI finding in the strict sense.** It is
-  reported with `identity_type: other` and the standard `Task` issue type,
-  and the summary line is prefixed `NHI Blog Digest:` so it is easy to tell
-  apart from scanner findings in the same project.
+- **The ticket is exactly what the assignment asks for: the post's title
+  and the AI summary.** The summary is a faithful digest of the post (what
+  it is about, its main points, its conclusion), not an NHI-flavoured
+  rewrite. The description adds the source URL and the publication date so
+  a reader can get to the original in one click. It uses the standard
+  `Task` issue type and the same labels as every other ticket from the app.
 
 ---
 

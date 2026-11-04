@@ -265,14 +265,13 @@ def _get(http: httpx.Client, url: str) -> httpx.Response:
 
 # --- Step 2: summarize with Claude ---------------------------------------------------------
 
-SYSTEM_PROMPT = """You write short digests of security blog posts for an engineering team that manages
-Non-Human Identities (service accounts, API keys, service principals, machine credentials).
+SYSTEM_PROMPT = """You summarize blog posts for people who have not read them.
 
 Write plain text, no markdown headings. Structure:
-1. One sentence saying what the post is about.
-2. Three to five bullet points (lines starting with "- ") with the concrete takeaways.
-3. One line starting with "Why it matters for NHI security:" with the practical relevance.
-Keep the whole digest under 180 words. Do not invent facts that are not in the post."""
+1. One sentence saying what the post is about and who wrote it, if known.
+2. Three to five bullet points (lines starting with "- ") with the main points, in the post's own order.
+3. One closing sentence with the post's conclusion or call to action, if it has one.
+Keep the whole summary under 180 words. Stay faithful to the post; do not add opinions or facts that are not in it."""
 
 
 def summarize(post: Post, *, model: str) -> str:
@@ -323,12 +322,11 @@ def build_finding(post: Post, summary: str, project_key: str) -> dict:
     lines = [summary, "", f"Source: {post.url}"]
     if post.published:
         lines.append(f"Published: {post.published}")
-    lines.append("Generated automatically by the NHI Blog Digest.")
+    lines.append("Summary generated automatically by the NHI Blog Digest automation.")
     return {
         "project_key": project_key,
-        "summary": f"NHI Blog Digest: {post.title}"[:255],
-        "description": "\n".join(lines),
-        "identity_type": "other",
+        "summary": post.title[:255],          # the ticket title is the post title
+        "description": "\n".join(lines),     # the AI summary, then where it came from
         "issue_type": "Task",
     }
 
