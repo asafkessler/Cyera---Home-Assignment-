@@ -308,6 +308,12 @@ change.
 - **Labels:** every issue gets `identityhub` and `nhi-finding`, so Jira users
   can filter for app-created tickets with JQL even though the app itself
   relies on its local record (see section 3).
+- **Where the ticket lands in Jira is the team's business, not the app's.**
+  In a Scrum project a new issue goes to the backlog until someone pulls it
+  into a sprint; in a Kanban project it appears on the board immediately. The
+  app creates the issue and stops there. Automatically adding it to the
+  active sprint would require Jira's Agile API, assume a sprint exists, and
+  make a planning decision on behalf of the team. Out of scope, documented.
 
 ---
 
@@ -360,7 +366,7 @@ table, appears in the same recent-tickets view, and is isolated to the same
 tenant as a ticket created by a person in the form. Multi-tenancy and
 consistency are properties of one function, not of each endpoint.
 
-**Further decisions (to be refined during implementation):**
+**Further decisions:**
 
 - **Per-user API keys.** A user generates a key from the UI. The key is shown
   **once**, and only a hash of it is stored, so a database leak does not leak
@@ -381,12 +387,22 @@ consistency are properties of one function, not of each endpoint.
   on a missing or invalid key, `404` on an unknown project, and `502` when
   Jira itself fails, with Jira's message passed through. All errors share one
   JSON shape (`code`, `message`, `details`).
-- **OpenAPI / Swagger documentation.** The API is documented at `/docs`
-  (interactive) and `/redoc`, generated from the typed request and response
-  models so the documentation cannot drift from the code. The API-key scheme
-  is declared, so the "Authorize" button works and the reviewer can create a
-  real ticket from the browser. Each field has a description and a realistic
-  NHI example; public and internal endpoints are grouped under separate tags.
+- **OpenAPI / Swagger documentation.** The API is documented at `/api/docs`
+  (interactive) and `/api/redoc`, generated from the typed request and
+  response models so the documentation cannot drift from the code. The
+  API-key scheme is declared, so the "Authorize" button works and the
+  reviewer can create a real ticket from the browser. Each field has a
+  description and a realistic NHI example; public and internal endpoints are
+  grouped under separate tags. Every endpoint lists the exact error codes it
+  can return, each with a full example body, produced by one helper
+  (`error_responses`) from the same error classes the code raises, so the
+  documented errors and the real errors cannot diverge.
+- **Key format.** Keys start with `ihk_` so they are recognisable in logs and
+  by secret scanners, and the UI shows only the first 12 characters.
+- **Out of scope, noted for production:** rate limiting per key, key expiry
+  dates, and scoping a key to specific projects. The data model leaves room
+  for all three (keys are rows with their own lifecycle), but none is needed
+  to demonstrate the integration.
 
 ---
 
