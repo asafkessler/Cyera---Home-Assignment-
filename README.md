@@ -39,6 +39,34 @@ Either:
 Plus a **Jira Cloud** account (free tier is fine) and an Atlassian API token
 for connecting your workspace, see [Connecting your Jira workspace](#connecting-your-jira-workspace).
 
+<details>
+<summary><strong>Installing Docker, if you do not have it yet</strong></summary>
+
+- **Windows.** Docker needs WSL 2 (a lightweight Linux that Windows manages).
+  In PowerShell run `wsl --status`; if WSL is missing, run `wsl --install`
+  and restart. Then install
+  [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/)
+  (keep "Use WSL 2" selected), start it, and wait for "Engine running" in the
+  bottom-left corner. Open a **new** terminal afterwards.
+- **macOS.** Install
+  [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/)
+  (pick the Apple silicon or Intel build), start it, and wait for the engine
+  to report running.
+- **Linux.** Install Docker Engine and the Compose plugin from
+  [docs.docker.com/engine/install](https://docs.docker.com/engine/install/)
+  for your distribution. On Debian/Ubuntu the packages are `docker-ce`,
+  `docker-ce-cli`, `containerd.io` and `docker-compose-plugin`. Add your user
+  to the `docker` group (`sudo usermod -aG docker $USER`, then log out and
+  in) so `docker compose up` works without `sudo`.
+
+Verify with:
+
+```bash
+docker --version && docker compose version
+```
+
+</details>
+
 ## Running the project
 
 Two ways. Docker is the quickest; the local path is for working on the code.
