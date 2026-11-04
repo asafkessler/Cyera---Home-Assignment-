@@ -9,6 +9,26 @@ This project lets IdentityHub users report NHI findings (for example, a stale
 service account, an overprivileged key, or an expiring credential) directly to
 their own Jira workspace as tickets.
 
+## Quick start
+
+```bash
+git clone https://github.com/asafkessler/identityhub-jira-integration.git
+cd identityhub-jira-integration
+docker compose up
+```
+
+Then open **http://localhost:5173**, create an account, connect your Jira
+Cloud workspace (site URL, email, and an
+[API token](https://id.atlassian.com/manage-profile/security/api-tokens)),
+and report a finding. The API documentation is at
+http://localhost:8000/api/docs. No `.env` or other setup is needed for a
+local run; Docker is the only prerequisite ([installing it](#prerequisites)).
+
+The rest of this document is reference: running without Docker, configuration,
+the REST API, the bonus automation, project layout and security notes. Design
+decisions are in [DECISIONS.md](DECISIONS.md), structure in
+[ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## What it does
 
 - **Login and logout** with secure, server-side sessions. Multiple users can
