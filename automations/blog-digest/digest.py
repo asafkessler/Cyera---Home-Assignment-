@@ -66,7 +66,15 @@ def fetch_latest_post(blog_url: str, http: httpx.Client) -> Post:
     article = _extract_article_text(page)
     if not article:
         raise DigestError(f"Fetched {url} but could not extract readable text from it.")
-    return Post(title=title or _html_title(page) or url, url=url, published=published or _published_date(page), text=article[:MAX_ARTICLE_CHARS])
+    # The post's title is what a reader sees above the article (its <h1>). The
+    # feed title is equivalent when a feed exists; og:title / <title> are SEO
+    # variants that can differ from the visible heading, so they come last.
+    return Post(
+        title=title or _h1(page) or _html_title(page) or url,
+        url=url,
+        published=published or _published_date(page),
+        text=article[:MAX_ARTICLE_CHARS],
+    )
 
 
 def _latest_from_feed(blog_url: str, http: httpx.Client) -> tuple[str, str, str | None] | None:
@@ -242,6 +250,15 @@ def _published_date(page: str) -> str | None:
         if match:
             return match.group(1).strip()
     return None
+
+
+def _h1(page: str) -> str | None:
+    match = re.search(r"<h1[^>]*>(.*?)</h1>", page, re.S | re.I)
+    if not match:
+        return None
+    text = re.sub(r"<[^>]+>", "", match.group(1))
+    text = re.sub(r"\s+", " ", text).strip()
+    return text or None
 
 
 def _html_title(page: str) -> str | None:
