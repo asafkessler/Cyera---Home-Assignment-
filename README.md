@@ -147,6 +147,11 @@ The app verifies the three values against Jira before saving them, so a typo
 is reported right away. The token is stored encrypted and is never shown
 again; you can disconnect at any time, which deletes it.
 
+**Where do tickets show up in Jira?** In the project you selected. In a
+Scrum project new issues go to the **Backlog** (not the active sprint board)
+until someone pulls them into a sprint; in a Kanban project they appear on the
+board right away. The ticket link in the app always opens the issue directly.
+
 Until the web UI is in place, you can do this from the interactive API docs
 at http://localhost:8000/api/docs: `POST /api/auth/register`, then
 `PUT /api/jira/connection`, then `GET /api/jira/projects`.

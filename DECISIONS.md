@@ -308,6 +308,12 @@ change.
 - **Labels:** every issue gets `identityhub` and `nhi-finding`, so Jira users
   can filter for app-created tickets with JQL even though the app itself
   relies on its local record (see section 3).
+- **Where the ticket lands in Jira is the team's business, not the app's.**
+  In a Scrum project a new issue goes to the backlog until someone pulls it
+  into a sprint; in a Kanban project it appears on the board immediately. The
+  app creates the issue and stops there. Automatically adding it to the
+  active sprint would require Jira's Agile API, assume a sprint exists, and
+  make a planning decision on behalf of the team. Out of scope, documented.
 
 ---
 
