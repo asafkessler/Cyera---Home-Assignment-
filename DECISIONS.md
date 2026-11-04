@@ -355,9 +355,34 @@ marker. The view is filtered by the selected project and by the current user,
 and it includes tickets created through the REST API as well as the form,
 since both are "created from this app".
 
-**Trade-off accepted:** if a ticket is deleted in Jira, it still appears in
-the list until the app reconciles. For a POC this is acceptable and documented;
-production would reconcile periodically or on click.
+**What this means in practice.** The list is scoped **per installation and
+per user**: it shows the tickets that *this* database recorded for *this*
+account. Two consequences, both observed during testing and both intentional:
+
+- Two users of the same installation connected to the same Jira project each
+  see only their own tickets. That is the multi-tenancy requirement, and a
+  JQL-based list could not provide it: Jira does not know which IdentityHub
+  user created an issue.
+- Two installations (a local run, a Docker run, the GitHub Actions job)
+  connected to the same Jira project are three independent clients of that
+  Jira. A ticket created by one does not appear in another's list, even
+  though it carries the `identityhub` label. The CI run that created
+  SCRUM-13 is, from the Docker installation's point of view, just another
+  system that writes to the same Jira.
+
+**Trade-offs accepted:** if a ticket is deleted or renamed in Jira, the list
+does not notice until the app reconciles; and a fresh database starts with an
+empty list even when the project already holds app-created tickets. For a POC
+this is acceptable and documented.
+
+**Production follow-up: reconciliation.** Keep the local record as the source
+of truth for *origin* (who created what, from where), and reconcile against
+Jira for *state*: on refresh, one JQL query for the recorded keys (`key in
+(...)`) marks deleted issues and refreshes titles, best-effort, falling back
+to the local list when Jira is unavailable. Optionally, a second query for
+`labels = identityhub` can surface tickets created by other installations as
+"from another IdentityHub installation". The label is set on every issue
+today precisely to keep that door open.
 
 ---
 
@@ -432,8 +457,10 @@ consistency are properties of one function, not of each endpoint.
   or the Jira credentials; it is the first client of requirement 4. The
   alternative, calling Jira directly, would duplicate the Jira code and bypass
   everything the app enforces.
-- **Trigger:** a GitHub Actions workflow on a schedule, plus a manual
-  command for demonstrations.
+- **Trigger:** a GitHub Actions workflow started manually from the Actions
+  tab, plus the same script run from a terminal for demonstrations. A daily
+  schedule is a two-line change in the workflow file (left commented out, so
+  the demo Jira project is not filled with tickets every morning).
 - **AI summary requires a provider key by design.** The summary is produced by
   the Claude API, and the automation needs an `ANTHROPIC_API_KEY`. Without
   one it stops with a clear message explaining what is missing. There is no
@@ -456,12 +483,12 @@ consistency are properties of one function, not of each endpoint.
   is used for parsing, so the automation stays dependency-light. A site
   redesign could break the HTML fallback; the `--print-post` flag exists to
   check that quickly without spending an API call.
-- **The scheduled run is self-contained.** Nothing is deployed anywhere, so
+- **The Actions run is self-contained.** Nothing is deployed anywhere, so
   the GitHub Actions job starts the backend from the repository, registers a
   throwaway account, connects Jira from repository secrets, creates an API
   key, and runs the digest against `localhost`. It exercises the real API
   path end to end and leaves real tickets in Jira. The last reported post is
-  kept in the Actions cache so a daily run with no new post creates nothing.
+  kept in the Actions cache so a repeated run with no new post creates nothing.
 - **Model and safeguards.** `claude-opus-5-5` by default (configurable),
   with the API's server-side fallback enabled so that a declined request is
   retried on a fallback model inside the same call rather than failing the
