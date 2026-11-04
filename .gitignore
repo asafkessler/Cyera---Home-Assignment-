@@ -32,6 +32,9 @@ backend/data/
 *.db-shm
 *.sqlite
 
+# Blog digest runtime state
+automations/blog-digest/state.json
+
 # Logs
 *.log
 npm-debug.log*

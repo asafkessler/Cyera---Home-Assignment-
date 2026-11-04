@@ -41,11 +41,33 @@ for connecting your workspace, see [Connecting your Jira workspace](#connecting-
 
 ## Running the project
 
-_To be documented._
+Two ways. Docker is the quickest; the local path is for working on the code.
 
-### Option A: Docker
+### Option A: Docker (recommended)
 
-_To be documented._
+From the repository root:
+
+```bash
+docker compose up
+```
+
+Then open **http://localhost:5173**. The API documentation is at
+http://localhost:8000/api/docs.
+
+That is all. No `.env` is needed: if the two application secrets are not
+provided, the backend generates them once and keeps them in the `app-data`
+volume (see [Configuration](#configuration-env)). The first run builds both
+images, which takes a minute or two.
+
+To stop: `Ctrl+C`, then `docker compose down`. Add `-v` to also delete the
+data volume (accounts, Jira connections, tickets, API keys).
+
+What runs:
+
+| Container | Port | Role |
+|---|---|---|
+| `frontend` | 5173 | nginx serving the built React app and proxying `/api` to the backend |
+| `backend` | 8000 | FastAPI + SQLite (file in the `app-data` volume), runs as a non-root user |
 
 ### Option B: Local (without Docker)
 
@@ -140,6 +162,12 @@ Both secrets can be generated with `python -m app.keys` from the `backend/`
 directory. If either is missing or malformed, the backend refuses to start and
 prints exactly what to do.
 
+**With Docker**, a root `.env` is optional: Compose passes it to the backend
+when present. When the secrets are absent, the container's entrypoint
+generates them once into the data volume so that `docker compose up` works
+with no setup. This is a local-evaluation convenience; in production the
+secrets are supplied explicitly and are never stored next to the data.
+
 Jira credentials are **not** environment configuration: every user enters
 their own in the app after logging in, and they are stored encrypted per user.
 
@@ -230,12 +258,108 @@ the app's recent-tickets view with source `api`.
 
 ## Running the Blog Digest automation (bonus)
 
-_To be documented._
+`automations/blog-digest/digest.py` fetches the most recent post from
+[oasis.security/blog](https://www.oasis.security/blog), asks Claude for a
+short digest, and reports it as a ticket through the app's public API, like
+any other external system would. It remembers the last post it reported, so
+running it twice does not create two tickets.
+
+**What you need**
+
+| Variable | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` | Required. The AI summary is produced by the Claude API. Without a key the script stops and says so; there is no non-AI fallback, because the assignment asks for an AI-powered summary |
+| `IDENTITYHUB_API_KEY` | Required. Create one in the app under **API keys** |
+| `IDENTITYHUB_API_URL` | Default `http://localhost:8000` |
+| `JIRA_PROJECT_KEY` | Default `SCRUM` |
+| `DIGEST_MODEL` | Default `claude-opus-5-5` |
+
+**Run it locally** (with the backend running):
+
+```bash
+cd automations/blog-digest && python -m venv .venv && .venv/bin/pip install -r requirements.txt
+```
+
+```bash
+.venv/bin/python digest.py --print-post
+```
+
+`--print-post` only shows which post would be used, without calling Claude or
+creating anything. Then, with `ANTHROPIC_API_KEY` and `IDENTITYHUB_API_KEY`
+exported:
+
+```bash
+.venv/bin/python digest.py --dry-run
+```
+
+prints the ticket that would be created, and
+
+```bash
+.venv/bin/python digest.py
+```
+
+creates it. On Windows use `.venv\Scripts\python.exe` instead of
+`.venv/bin/python`. Tests: `.venv/bin/python -m pytest`.
+
+**Scheduled run (GitHub Actions).** `.github/workflows/blog-digest.yml` runs
+the digest daily and on demand. The job is self-contained: it starts the
+backend from the repository, registers a throwaway account, connects the Jira
+workspace from repository secrets, creates an API key, and runs the digest.
+Configure these secrets in the repository (Settings → Secrets and variables
+→ Actions): `ANTHROPIC_API_KEY`, `JIRA_SITE_URL`, `JIRA_EMAIL`,
+`JIRA_API_TOKEN`, and optionally `JIRA_PROJECT_KEY`. The run log shows the
+post, the digest, and the created issue key; the key itself is masked.
 
 ## Project structure
 
-_To be documented._
+```
+backend/                 Python / FastAPI
+  app/
+    main.py              app factory: routers, error handlers, docs
+    config.py            settings from the environment
+    db.py                SQLAlchemy engine, SQLite pragmas (WAL), sessions
+    models.py            the schema: users, sessions, jira_connections, tickets, api_keys
+    core/                errors (one JSON shape), security (bcrypt, hashing, Fernet), deps
+    auth/                register / login / logout / me
+    jira/                Jira client + connection management + projects / issue types
+    tickets/             create finding ticket (one service for UI and API), recent tickets
+    api_keys/            per-user API keys
+    public_api/v1/       the external API (X-API-Key)
+  tests/                 pytest; an in-process fake Jira replaces the network
+frontend/                React + Vite + TypeScript
+  src/api/               the only module that performs HTTP; typed errors
+  src/pages/             login/register, connect Jira, findings, API keys
+  src/components/        ticket form, recent tickets, layout, error banner
+automations/blog-digest/ bonus automation (see below)
+docker-compose.yml       one-command run
+ARCHITECTURE.md          how it is put together and how a request flows
+DECISIONS.md             what was decided, what was rejected, and why
+```
+
+Each backend feature module follows the same layering: `router.py` (HTTP)
+→ `service.py` (use case) → `repository.py` (queries, always scoped by
+`user_id`), with `schemas.py` as the typed contract. See
+[ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Security notes
 
-_To be documented._
+- **Multi-tenancy.** Every table holding user data has a `user_id`, every
+  query filters by it, and routes receive the authenticated user from the
+  session or the API key, never from the request. A user cannot address
+  another user's connection, tickets, or keys.
+- **Sessions.** Server-side, identified by a random token whose hash is
+  stored. Cookie is `HttpOnly` and `SameSite=Lax`; `Secure` is enabled via
+  `COOKIE_SECURE=true` behind HTTPS. Logout deletes the session.
+- **Passwords** are hashed with bcrypt. Login failures are generic and take
+  the same time whether or not the email exists.
+- **Jira tokens** are verified against Jira before being saved, encrypted at
+  rest with a key that lives only in the environment, decrypted only for the
+  duration of a request, and never returned by any endpoint.
+- **API keys** are shown once and stored hashed; revocation is immediate.
+- **Errors** never leak internals: unexpected failures return a generic 500
+  and are logged server-side.
+- **Secrets never enter git.** `.env` is ignored; `.env.example` has names
+  only. Jira credentials are user data entered in the UI, not configuration.
+- **Known limits of a POC** (documented in DECISIONS.md): API tokens instead
+  of OAuth, no rate limiting on the public API, no CSRF token beyond
+  `SameSite=Lax`, SQLite instead of PostgreSQL, no migrations tooling.

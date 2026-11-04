@@ -1,0 +1,40 @@
+# One command to run everything:   docker compose up
+#
+#   frontend  nginx on http://localhost:5173, serves the UI and proxies /api → backend
+#   backend   FastAPI on port 8000 (also reachable directly for the API docs)
+#
+# Secrets: put APP_SECRET_KEY / APP_ENCRYPTION_KEY in a root .env to control
+# them; otherwise the backend generates them once into the data volume.
+
+services:
+  backend:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      DATABASE_URL: sqlite:////data/identityhub.db
+    volumes:
+      - app-data:/data
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  app-data:
