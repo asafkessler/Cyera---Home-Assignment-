@@ -387,8 +387,10 @@ creates it. On Windows create the environment with `py -3.13 -m venv .venv`
 and use `.venv\Scripts\python.exe` instead of `.venv/bin/python`.
 Tests: `.venv/bin/python -m pytest`.
 
-**Scheduled run (GitHub Actions).** `.github/workflows/blog-digest.yml` runs
-the digest daily and on demand. The job is self-contained: it starts the
+**Running it from GitHub Actions.** `.github/workflows/blog-digest.yml`
+runs the digest on demand from the repository's Actions tab ("Run workflow");
+a daily schedule is included as a commented-out two-line option. The job is
+self-contained: it starts the
 backend from the repository, registers a throwaway account, connects the Jira
 workspace from repository secrets, creates an API key, and runs the digest.
 Configure these secrets in the repository (Settings → Secrets and variables

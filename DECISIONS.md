@@ -432,8 +432,10 @@ consistency are properties of one function, not of each endpoint.
   or the Jira credentials; it is the first client of requirement 4. The
   alternative, calling Jira directly, would duplicate the Jira code and bypass
   everything the app enforces.
-- **Trigger:** a GitHub Actions workflow on a schedule, plus a manual
-  command for demonstrations.
+- **Trigger:** a GitHub Actions workflow started manually from the Actions
+  tab, plus the same script run from a terminal for demonstrations. A daily
+  schedule is a two-line change in the workflow file (left commented out, so
+  the demo Jira project is not filled with tickets every morning).
 - **AI summary requires a provider key by design.** The summary is produced by
   the Claude API, and the automation needs an `ANTHROPIC_API_KEY`. Without
   one it stops with a clear message explaining what is missing. There is no
@@ -456,12 +458,12 @@ consistency are properties of one function, not of each endpoint.
   is used for parsing, so the automation stays dependency-light. A site
   redesign could break the HTML fallback; the `--print-post` flag exists to
   check that quickly without spending an API call.
-- **The scheduled run is self-contained.** Nothing is deployed anywhere, so
+- **The Actions run is self-contained.** Nothing is deployed anywhere, so
   the GitHub Actions job starts the backend from the repository, registers a
   throwaway account, connects Jira from repository secrets, creates an API
   key, and runs the digest against `localhost`. It exercises the real API
   path end to end and leaves real tickets in Jira. The last reported post is
-  kept in the Actions cache so a daily run with no new post creates nothing.
+  kept in the Actions cache so a repeated run with no new post creates nothing.
 - **Model and safeguards.** `claude-opus-5-5` by default (configurable),
   with the API's server-side fallback enabled so that a declined request is
   retried on a fallback model inside the same call rather than failing the
